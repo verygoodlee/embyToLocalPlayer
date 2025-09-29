@@ -17,8 +17,8 @@ if "%PYTHON_VERSION:~0,6%" == "Python" (
     %pythonPath% -c "import sys; print(sys.executable)"
     echo press a number
     echo 1: run in console
-    echo 2: run in background and add to startup folder
-    echo 3: open startup folder
+    echo 2: register etlp:// protocol handler
+    echo 3: unregister etlp:// protocol handler
     echo 4: path translate helper
     echo 5: copy script path to clipboard
     echo 6: update to latest version
@@ -59,21 +59,17 @@ GOTO END
 
 :THREE
 echo you have pressed three
-explorer shell:startup
+reg delete "HKCU\SOFTWARE\Classes\etlp" /f >nul 2>&1
 GOTO END
 
 
 :TWO
 echo you have pressed two
-set startupVbs="%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\embyToLocalPlayer.vbs"
-set startupCmd=CreateObject("Wscript.Shell").Run ""%pythonPath%" ""%~dp0embyToLocalPlayer.py""" , 0, True
-echo startupCmd=%startupCmd%
-echo startupVbs=%startupVbs%
-echo %startupCmd% > %startupVbs%
-echo writing startupCmd to startupVbs, save in startup folder.
-timeout /nobreak /t 1 >nul
-echo close this window manually
-cscript.exe //nologo ""%startupVbs%""
+reg add "HKCU\SOFTWARE\Classes\etlp" /d "etlp Protocol" /f >nul
+reg add "HKCU\SOFTWARE\Classes\etlp" /v "URL Protocol" /f >nul
+reg add "HKCU\SOFTWARE\Classes\etlp\DefaultIcon" /f >nul
+set powershell_command=$param = '%%1' -replace '^^^^.*?://' -replace '/$'; if ($param -eq 'start') { Start-Process -WorkingDirectory '%~dp0' -FilePath '%pythonPath:~1,-1%' -ArgumentList 'embyToLocalPlayer.py' -WindowStyle Hidden; }
+reg add "HKCU\SOFTWARE\Classes\etlp\shell\open\command" /d "powershell.exe -NoProfile -NoLogo -NonInteractive -Sta -WindowStyle Hidden -ExecutionPolicy Bypass -Command \"%powershell_command%\"" /f >nul
 GOTO END
 
 

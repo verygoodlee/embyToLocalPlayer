@@ -3,7 +3,7 @@
 // @name:zh-CN   embyToLocalPlayer
 // @name:en      embyToLocalPlayer
 // @namespace    https://github.com/kjtsune/embyToLocalPlayer
-// @version      2025.09.15
+// @version      2025.09.29
 // @description  Emby/Jellyfin 调用外部本地播放器，并回传播放记录。适配 Plex。
 // @description:zh-CN Emby/Jellyfin 调用外部本地播放器，并回传播放记录。适配 Plex。
 // @description:en  Play in an external player. Update watch history to Emby/Jellyfin server. Support Plex.
@@ -193,7 +193,7 @@
         }
     }
 
-    function sendDataToLocalServer(data, path) {
+    function sendDataToLocalServer(data, path, isRetry) {
         let url = `http://127.0.0.1:58000/${path}/`;
         GM_xmlhttpRequest({
             method: 'POST',
@@ -203,8 +203,17 @@
                 'Content-Type': 'application/json'
             },
             onerror: function (error) {
-                alert(`${url}\n请求错误，本地服务未运行，请查看使用说明。\nhttps://github.com/kjtsune/embyToLocalPlayer`);
                 console.error('请求错误:', error);
+                if (isRetry !== true && navigator.platform.includes('Win')) { // Windows系统
+                    if (confirm("检测到本地服务未运行，是否尝试启动服务?")) {
+                        window.open('etlp://start', '_self'); // 启动本地服务
+                        setTimeout(() => { // 3秒等待服务启动
+                            sendDataToLocalServer(data, path, true); // 重新发送请求，带上重试标识，避免启动服务失败导致循环触发这个逻辑
+                        }, 3000);
+                    }
+                } else {
+                    alert(`${url}\n请求错误，本地服务未运行，请查看使用说明。\nhttps://github.com/kjtsune/embyToLocalPlayer`);
+                }
             }
         });
         logger.info(path, data);
